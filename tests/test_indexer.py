@@ -106,3 +106,13 @@ def test_updates_are_reflected_in_gemini_search(gemini_settings, tmp_path):
     assert len(report.updated) == 1 and len(report.unchanged) == 1
     top = store.search(query, k=1)[0].chunk.text
     assert "bluebird77" in top and all("sunflower42" not in c.text for c in store.chunks)
+
+
+def test_empty_files_are_tracked_not_readded(setup):
+    docs, store, _, indexer = setup
+    (docs / "empty.md").write_text("   ")
+    assert len(indexer.sync(docs).added) == 1
+    assert not indexer.sync(docs).changed
+    (docs / "empty.md").write_text("Now it has words.")
+    assert len(indexer.sync(docs).updated) == 1
+    assert [c.text for c in store.chunks] == ["Now it has words."]

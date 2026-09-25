@@ -9,7 +9,7 @@ import numpy as np
 
 from rag.chunking import chunk_text
 from rag.loaders import find_documents, load_text
-from rag.store import VectorStore
+from rag.store import DocRecord, VectorStore
 
 
 class Embedder(Protocol):
@@ -55,7 +55,9 @@ class Indexer:
         if chunks:
             self.store.upsert_doc(key, digest, chunks, self.embedder.embed_documents(chunks))
         else:
+            # Still record empty files so they count as unchanged next time instead of "added" on every sync.
             self.store.remove_doc(key)
+            self.store.docs[key] = DocRecord(hash=digest, chunks=0)
         (report.updated if existing else report.added).append(key)
 
     def sync(self, root: Path, prune: bool = True) -> SyncReport:
