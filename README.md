@@ -59,6 +59,22 @@ install starts with the sample docs. Every upload, edit or delete re-syncs just 
 
 Each write returns a sync report like `{"added": [], "updated": ["coffee.txt"], "removed": [], "unchanged": 1}`.
 
+## Deploying to Vercel
+
+The repo includes a FastAPI entrypoint (`app.py`) and `vercel.json`.
+
+1. Import this repository in Vercel, or run `npx vercel link` locally.
+2. Set `GEMINI_API_KEY` in the project's environment variables.
+3. Deploy with `npx vercel --prod` or through the dashboard.
+
+On Vercel, documents and the index use `/tmp/rag/`. This storage is temporary
+and is not shared between function instances: uploads and edits can disappear
+on a cold start or be unavailable on another instance. This deployment is suitable
+for a demo; durable document management requires shared external storage.
+Fresh instances index the sample documents using your Gemini API key.
+
+The app has no login: anyone with the URL can access documents and use your Gemini quota.
+
 ## Deploying to Render
 
 The repo includes a `render.yaml` blueprint.

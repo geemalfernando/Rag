@@ -1,7 +1,10 @@
 """Thin wrapper around the Gemini SDK: embeddings and text generation with retries."""
 
+from typing import TypeVar
+
 import numpy as np
 from google import genai
+from pydantic import BaseModel
 from google.genai import types
 
 from rag.config import Settings
@@ -10,6 +13,8 @@ from rag.config import Settings
 _RETRY = types.HttpRetryOptions(attempts=6, initial_delay=2.0, max_delay=30.0, http_status_codes=[429, 500, 502, 503, 504])
 _EMBED_BATCH = 100
 EMBED_DIM = 768
+
+T = TypeVar("T", bound=BaseModel)
 
 
 class Gemini:
@@ -41,6 +46,9 @@ class Gemini:
     def embed_query(self, text: str) -> np.ndarray:
         return self._embed([text], "RETRIEVAL_QUERY")[0]
 
+    def embed_queries(self, texts: list[str]) -> np.ndarray:
+        return self._embed(texts, "RETRIEVAL_QUERY")
+
     def generate(self, prompt: str, system: str | None = None) -> str:
         response = self.client.models.generate_content(
             model=self.settings.chat_model,
@@ -48,3 +56,18 @@ class Gemini:
             config=types.GenerateContentConfig(system_instruction=system),
         )
         return response.text or ""
+
+    def generate_json(self, prompt: str, schema: type[T], system: str | None = None) -> T:
+        """Ask for a reply that matches a pydantic schema and parse it."""
+        response = self.client.models.generate_content(
+            model=self.settings.chat_model,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=system,
+                response_mime_type="application/json",
+                response_schema=schema,
+            ),
+        )
+        if isinstance(response.parsed, schema):
+            return response.parsed
+        return schema.model_validate_json(response.text or "{}")

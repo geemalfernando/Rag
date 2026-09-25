@@ -6,3 +6,6 @@ __pycache__/
 .rag_store/
 *.egg-info/
 data/
+.vercel/
+.vercel
+.env*
