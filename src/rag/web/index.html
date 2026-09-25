@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rag · Ask your documents</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%234f46e5'/><path d='M9 8h9a5 5 0 0 1 0 10h-2l6 6' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/><path d='M9 8v16' stroke='white' stroke-width='3' stroke-linecap='round'/></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="logo">R</span> Rag <span class="muted">· ask your documents</span></div>
+    <div class="models muted" id="models"></div>
+  </header>
+
+  <main class="layout">
+    <aside class="panel docs">
+      <div class="panel-head">
+        <h2>Documents</h2>
+        <button class="btn ghost" id="new-doc" title="Write a new text document">+ New</button>
+      </div>
+      <label class="dropzone" id="dropzone">
+        <input type="file" id="file-input" multiple accept=".txt,.md,.markdown,.rst,.pdf" hidden>
+        <strong>Drop files here</strong> or click to upload
+        <span class="muted small">txt · md · rst · pdf, up to 5 MB</span>
+      </label>
+      <ul class="doc-list" id="doc-list"><li class="muted small">Loading…</li></ul>
+    </aside>
+
+    <section class="panel chat">
+      <form id="ask-form" class="ask">
+        <textarea id="question" rows="2" placeholder="Ask something about your documents…" required maxlength="1000"></textarea>
+        <button class="btn primary" id="ask-btn" type="submit">Ask</button>
+      </form>
+      <div class="suggestions" id="suggestions">
+        <button type="button">What temperature should the water be for pour-over?</button>
+        <button type="button">Which planet has the fastest winds?</button>
+      </div>
+      <div id="answers"></div>
+    </section>
+  </main>
+
+  <dialog id="editor">
+    <form method="dialog" class="editor" id="editor-form">
+      <div class="panel-head">
+        <input id="editor-name" class="name-input" placeholder="notes.md" required>
+        <button class="btn ghost" value="cancel" formnovalidate>Close</button>
+      </div>
+      <textarea id="editor-content" spellcheck="true" placeholder="Write or paste your document here…"></textarea>
+      <div class="editor-foot">
+        <span class="muted small">Saving re-indexes only this file if it changed.</span>
+        <button class="btn primary" id="save-btn" value="save">Save &amp; sync</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
