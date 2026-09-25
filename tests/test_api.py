@@ -37,6 +37,9 @@ def test_document_lifecycle_and_answers(client):
     assert r.json()["added"] == ["notes.txt"]
 
 
-def test_rejects_unsafe_names(client):
-    assert client.put("/api/documents/..%2Fescape.md", json={"content": "x"}).status_code in (400, 404)
+def test_rejects_unsafe_names(client, tmp_path):
+    # Traversal attempts must never write outside the docs folder, whichever layer rejects them.
+    for name in ("..%2Fescape.md", "%2E%2E%2Fescape.md", "sub%2Fescape.md"):
+        assert client.put(f"/api/documents/{name}", json={"content": "x"}).status_code >= 400
+    assert not list(tmp_path.rglob("escape.md"))
     assert client.put("/api/documents/evil.sh", json={"content": "x"}).status_code == 400

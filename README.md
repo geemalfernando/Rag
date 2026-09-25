@@ -4,6 +4,7 @@ Ask questions about your own documents with Gemini, and keep the index up to dat
 
 - **Supports** `.txt`, `.md`, `.rst` and `.pdf`
 - **Incremental updates**: files are fingerprinted with sha256, so a sync only re-embeds what was added or edited and drops what was deleted
+- **Multi-agent answers**: a Planner, Researcher, Writer and Verifier work together, and every claim is fact-checked against your docs
 - **Grounded answers**: Gemini answers only from the retrieved chunks and cites them as `[1]`, `[2]`, …
 - **No database needed**: the index is a JSON file plus a NumPy array in `.rag_store/`
 - **Web app**: upload, edit and delete docs in the browser, then ask questions with clickable citations
@@ -22,6 +23,8 @@ Get a key at <https://aistudio.google.com/apikey>.
 ```bash
 uv run rag sync docs/samples          # index a folder (re-run any time files change)
 uv run rag ask "What temperature should the water be for pour-over?"
+uv run rag ask "..." --trace             # show what each agent did
+uv run rag ask "..." --simple            # skip the agents: one search, one Gemini call
 uv run rag search "largest planet"    # just show the matching chunks
 uv run rag list                       # what's indexed
 uv run rag remove docs/samples/coffee.txt
@@ -55,7 +58,7 @@ install starts with the sample docs. Every upload, edit or delete re-syncs just 
 | `PUT /api/documents/{name}` | create or overwrite a text doc (`{"content": "..."}`) |
 | `POST /api/documents` | upload files (multipart, field `files`) |
 | `DELETE /api/documents/{name}` | delete a doc |
-| `POST /api/ask` | `{"question": "...", "k": 5}` → answer + sources |
+| `POST /api/ask` | `{"question": "...", "k": 5, "mode": "agents"}` → answer, sources, `verified`, `trace` |
 
 Each write returns a sync report like `{"added": [], "updated": ["coffee.txt"], "removed": [], "unchanged": 1}`.
 
@@ -105,6 +108,41 @@ Set these in `.env` or the environment:
 On the free tier, the full `gemini-flash-latest` model is capped at 20 requests a day, which is why the lite model is the default.
 Busy (503) and rate-limit (429) responses are retried automatically with backoff.
 
+## The agent team
+
+Questions are answered by four agents, each with one job:
+
+```
+question
+   │
+   ▼
+Planner ─────── needs the docs? split into focused search queries (max 3)
+   │            └─ small talk ("hi", "thanks") gets a direct reply, no search
+   ▼
+Researcher ──── embeds all queries in one call, searches the index, merges the best chunks
+   ▼
+Writer ──────── drafts an answer with [n] citations, using only those chunks
+   ▼
+Verifier ────── checks each claim against its cited chunk
+   │   ├─ approved ─────────────▶ answer (✓ verified)
+   │   └─ issues found ─▶ Writer revises once ─▶ Verifier checks again
+   ▼
+answer + sources + trace
+```
+
+| Agent | Uses | Output |
+|---|---|---|
+| Planner (`agents/planner.py`) | Gemini, structured JSON | `Plan`: queries, or a direct reply |
+| Researcher (`agents/researcher.py`) | embeddings + vector store | merged chunks, best per query |
+| Writer (`agents/writer.py`) | Gemini | cited answer, or a revision from feedback |
+| Verifier (`agents/verifier.py`) | Gemini, structured JSON | `Verdict`: approved + list of issues |
+
+The `Orchestrator` (`agents/orchestrator.py`) runs them and records a trace, which is printed with `--trace`,
+returned by `/api/ask`, and shown as a timeline in the web UI.
+
+**Quota:** an agent answer uses 3 Gemini calls (up to 5 when a revision is needed), versus 1 in simple mode.
+On the free tier, switch the web UI to **Simple** or pass `--simple` when you're running low.
+
 ## How it works
 
 ```
@@ -123,7 +161,8 @@ question ──embed (Gemini)──▶ top-k cosine search ◀──────
 | `gemini.py` | embeddings + generation, with retries |
 | `store.py` | chunks + vectors on disk, cosine search |
 | `indexer.py` | hash-based add/update/remove sync |
-| `pipeline.py` | retrieve and answer |
+| `agents/` | Planner, Researcher, Writer, Verifier and the Orchestrator |
+| `pipeline.py` | sync, retrieve and answer (agent team or simple mode) |
 | `cli.py` | the `rag` command |
 | `api.py` + `web/` | FastAPI backend and the browser frontend |
 
