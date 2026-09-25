@@ -6,17 +6,23 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
 dependencies = [
+    "fastapi>=0.141.1",
     "google-genai>=1.0",
     "numpy>=1.26",
     "pypdf>=4.0",
     "python-dotenv>=1.0",
+    "python-multipart>=0.0.32",
+    "uvicorn[standard]>=0.54.0",
 ]
 
 [project.scripts]
 rag = "rag.cli:main"
 
 [dependency-groups]
-dev = ["pytest>=8"]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=8",
+]
 
 [build-system]
 requires = ["hatchling"]
