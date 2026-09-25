@@ -49,6 +49,21 @@ h2 { margin: 0; font-size: 15px; }
 .ask { display: flex; gap: 10px; align-items: flex-end; }
 .ask textarea { flex: 1; resize: vertical; min-height: 48px; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: var(--bg); }
 .ask textarea:focus, .name-input:focus, .editor textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.mode-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+.mode { display: inline-flex; border: 1px solid var(--border); border-radius: 9px; padding: 2px; }
+.mode label { padding: 4px 12px; border-radius: 7px; cursor: pointer; font-size: 13.5px; }
+.mode input { display: none; }
+.mode label:has(input:checked) { background: var(--accent); color: #fff; }
+.badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; margin-left: 8px; vertical-align: 1px; }
+.badge.ok { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
+.badge.warn { background: color-mix(in srgb, var(--danger) 13%, transparent); color: var(--danger); }
+.trace { list-style: none; margin: 12px 0 0; padding: 0 0 0 4px; border-left: 2px solid var(--border); }
+.trace > li { position: relative; padding: 2px 0 8px 16px; font-size: 13.5px; }
+.trace > li::before { content: ""; position: absolute; left: -6px; top: 8px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+.trace > li.warn::before { background: var(--danger); }
+.trace .agent { font-weight: 650; }
+.trace ul { margin: 2px 0 0; padding-left: 18px; color: var(--muted); font-size: 13px; }
+.note { color: var(--danger); font-size: 13.5px; margin-top: 6px; }
 .suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 4px; }
 .suggestions button { border: 1px solid var(--border); background: transparent; border-radius: 999px; padding: 4px 12px; font-size: 13px; cursor: pointer; color: var(--muted); }
 .suggestions button:hover { color: var(--accent); border-color: var(--accent); }

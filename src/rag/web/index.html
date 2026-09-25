@@ -32,9 +32,17 @@
         <textarea id="question" rows="2" placeholder="Ask something about your documents…" required maxlength="1000"></textarea>
         <button class="btn primary" id="ask-btn" type="submit">Ask</button>
       </form>
+      <div class="mode-row">
+        <div class="mode" role="radiogroup" aria-label="Answer mode">
+          <label><input type="radio" name="mode" value="agents" checked> Agent team</label>
+          <label><input type="radio" name="mode" value="simple"> Simple</label>
+        </div>
+        <span class="muted small" id="mode-hint">Planner → Researcher → Writer → Verifier</span>
+      </div>
       <div class="suggestions" id="suggestions">
         <button type="button">What temperature should the water be for pour-over?</button>
         <button type="button">Which planet has the fastest winds?</button>
+        <button type="button">What's the coffee to water ratio, and which planet rotates on its side?</button>
       </div>
       <div id="answers"></div>
     </section>

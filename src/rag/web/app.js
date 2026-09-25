@@ -140,11 +140,23 @@ function renderAnswer(text, id) {
   return html.split(/\n{2,}/).map((p) => `<p>${p.replace(/\n/g, "<br>")}</p>`).join("");
 }
 
+function renderTrace(trace) {
+  if (!trace.length) return "";
+  return `<details class="trace-wrap"><summary class="muted small">How the agents answered (${trace.length} steps)</summary><ul class="trace">${trace.map((s) => {
+    const items = [...(s.detail.queries || []), ...(s.detail.issues || [])];
+    const warn = s.agent === "Verifier" && s.summary !== "approved";
+    return `<li class="${warn ? "warn" : ""}"><span class="agent">${escapeHtml(s.agent)}</span> ${escapeHtml(s.summary)} <span class="muted small">· ${(s.ms / 1000).toFixed(1)}s</span>
+      ${items.length ? `<ul>${items.map((i) => `<li>${escapeHtml(i)}</li>`).join("")}</ul>` : ""}</li>`;
+  }).join("")}</ul></details>`;
+}
+
 async function ask(question) {
   const id = `qa${Date.now()}`;
   const block = document.createElement("div");
   block.className = "qa";
-  block.innerHTML = `<div class="q">${escapeHtml(question)}</div><div class="a"><span class="thinking"><i></i><i></i><i></i></span></div>`;
+  const agents = document.querySelector('input[name="mode"]:checked').value === "agents";
+  block.innerHTML = `<div class="q">${escapeHtml(question)}</div><div class="a"><span class="thinking"><i></i><i></i><i></i></span>
+    ${agents ? `<span class="muted small"> the agents are working — planning, searching, writing, then fact-checking…</span>` : ""}</div>`;
   answers.prepend(block);
   const btn = $("#ask-btn");
   btn.disabled = true;
@@ -152,9 +164,14 @@ async function ask(question) {
     const res = await api("/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question }),
+      body: JSON.stringify({ question, mode: document.querySelector('input[name="mode"]:checked').value }),
     });
-    block.querySelector(".a").innerHTML = renderAnswer(res.answer, id);
+    if (res.verified !== null) {
+      block.querySelector(".q").insertAdjacentHTML("beforeend",
+        res.verified ? `<span class="badge ok">✓ verified</span>` : `<span class="badge warn">unverified</span>`);
+    }
+    block.querySelector(".a").innerHTML = renderAnswer(res.answer, id) + res.notes.map((n) => `<p class="note">${escapeHtml(n)}</p>`).join("");
+    block.insertAdjacentHTML("beforeend", renderTrace(res.trace));
     if (res.sources.length) {
       block.insertAdjacentHTML("beforeend", `<div class="sources">${res.sources.map((s, i) => `
         <details id="${id}-src-${i + 1}">
@@ -193,6 +210,11 @@ $("#suggestions").addEventListener("click", (e) => {
   $("#question").value = e.target.textContent;
   $("#ask-form").requestSubmit();
 });
+
+document.querySelectorAll('input[name="mode"]').forEach((r) => r.addEventListener("change", () => {
+  $("#mode-hint").textContent = r.value === "agents" && r.checked
+    ? "Planner → Researcher → Writer → Verifier" : "One search, one Gemini call — faster, uses less quota";
+}));
 
 api("/health").then((h) => { $("#models").textContent = `${h.chat_model} · ${h.embed_model}`; }).catch(() => {});
 loadDocs();
