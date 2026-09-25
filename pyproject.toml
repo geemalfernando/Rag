@@ -3,6 +3,7 @@ name = "rag"
 version = "0.1.0"
 description = "A small RAG tool that keeps its index in sync as documents change, powered by Gemini."
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.10"
 dependencies = [
     "google-genai>=1.0",
