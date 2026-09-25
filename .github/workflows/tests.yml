@@ -1,0 +1,14 @@
+name: tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --python 3.12
+      # Live Gemini tests are left out here so CI doesn't eat the free-tier quota.
+      - name: Offline tests
+        run: uv run pytest -m "not gemini"
