@@ -5,9 +5,10 @@ Each agent has one job and hands a typed result to the next; the Orchestrator ru
 """
 
 from rag.agents.base import Trace, TraceStep
+from rag.agents.orchestrator import Orchestrator, TeamAnswer
 from rag.agents.planner import Plan, Planner
 from rag.agents.researcher import Researcher
 from rag.agents.verifier import Verdict, Verifier
 from rag.agents.writer import Writer
 
-__all__ = ["Plan", "Planner", "Researcher", "Trace", "TraceStep", "Verdict", "Verifier", "Writer"]
+__all__ = ["Orchestrator", "Plan", "Planner", "Researcher", "TeamAnswer", "Trace", "TraceStep", "Verdict", "Verifier", "Writer"]

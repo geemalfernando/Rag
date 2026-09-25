@@ -42,8 +42,17 @@ def cmd_watch(rag: RAG, args) -> None:
 
 
 def cmd_ask(rag: RAG, args) -> None:
-    answer = rag.ask(args.question, k=args.k)
+    answer = rag.ask(args.question, k=args.k, mode="simple" if args.simple else "agents")
+    if args.trace and answer.trace:
+        for step in answer.trace:
+            print(f"  · {step['agent']:<10} {step['summary']}  ({step['ms']} ms)")
+            for key in ("queries", "issues"):
+                for item in step["detail"].get(key, []):
+                    print(f"      - {item}")
+        print()
     print(answer.text.strip())
+    for note in answer.notes:
+        print(f"\n⚠ {note}")
     if answer.sources:
         print("\nSources:")
         for i, hit in enumerate(answer.sources, 1):
@@ -84,6 +93,8 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("ask", help="answer a question using the indexed documents")
     p.add_argument("question")
     p.add_argument("-k", type=int, default=5, help="number of chunks to retrieve")
+    p.add_argument("--simple", action="store_true", help="skip the agent team: one search, one Gemini call")
+    p.add_argument("--trace", action="store_true", help="show what each agent did")
     p.set_defaults(func=cmd_ask)
 
     p = sub.add_parser("search", help="show the most relevant chunks without generating an answer")

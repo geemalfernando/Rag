@@ -58,3 +58,15 @@ def test_verifier_catches_unsupported_claims_and_writer_fixes_them(team):
     fixed = Writer(gem).run(question, hits, draft=bad, feedback=verdict.issues)
     assert "25" in fixed and "gym" not in fixed.lower()
     assert Verifier(gem).run(question, hits, fixed).approved
+
+
+def test_orchestrator_answers_multi_part_question_with_trace(team):
+    from rag.agents import Orchestrator
+
+    gem, store = team
+    result = Orchestrator(gem, store).run("How many leave days do we get, and how often are laptops replaced?", k=4)
+    agents = [s.agent for s in result.trace.steps]
+    assert agents[:4] == ["Planner", "Researcher", "Writer", "Verifier"]
+    assert "25" in result.text and ("three" in result.text.lower() or "3" in result.text)
+    assert {"hr.md", "it.md"} <= {h.chunk.doc.split("/")[-1] for h in result.sources}
+    assert result.verified is not None

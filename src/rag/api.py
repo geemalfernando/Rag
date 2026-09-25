@@ -6,6 +6,7 @@ import shutil
 import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse
@@ -85,6 +86,7 @@ class TextDoc(BaseModel):
 class Question(BaseModel):
     question: str = Field(min_length=1, max_length=1000)
     k: int = Field(default=5, ge=1, le=10)
+    mode: Literal["agents", "simple"] = "agents"
 
 
 @app.get("/api/health")
@@ -160,9 +162,13 @@ def delete_document(name: str):
 
 @app.post("/api/ask")
 def ask(body: Question):
-    answer = rag().ask(body.question, k=body.k)
+    answer = rag().ask(body.question, k=body.k, mode=body.mode)
     return {
         "answer": answer.text,
+        "mode": answer.mode,
+        "verified": answer.verified,
+        "notes": answer.notes,
+        "trace": answer.trace,
         "sources": [
             {"doc": Path(h.chunk.doc).name, "chunk": h.chunk.index, "score": round(h.score, 3), "text": h.chunk.text}
             for h in answer.sources

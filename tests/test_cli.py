@@ -6,7 +6,8 @@ from rag.cli import build_parser
 def test_parses_commands():
     parser = build_parser()
     args = parser.parse_args(["ask", "what is up?", "-k", "3"])
-    assert args.question == "what is up?" and args.k == 3
+    assert args.question == "what is up?" and args.k == 3 and not args.simple
+    assert parser.parse_args(["ask", "q", "--simple", "--trace"]).trace
     assert parser.parse_args(["sync", "docs", "--keep-deleted"]).keep_deleted
 
 

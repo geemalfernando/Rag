@@ -1,8 +1,10 @@
 """Ties the pieces together: sync documents, retrieve relevant chunks, answer with Gemini."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Literal
 
+from rag.agents import Orchestrator
 from rag.config import Settings
 from rag.gemini import EMBED_DIM, Gemini
 from rag.indexer import Indexer, SyncReport
@@ -17,6 +19,13 @@ If the context doesn't contain the answer, say you couldn't find it in the docum
 class Answer:
     text: str
     sources: list[Hit]
+    mode: str = "simple"
+    trace: list[dict] = field(default_factory=list)
+    verified: bool | None = None
+    notes: list[str] = field(default_factory=list)
+
+
+Mode = Literal["agents", "simple"]
 
 
 class RAG:
@@ -25,6 +34,7 @@ class RAG:
         self.gemini = Gemini(self.settings)
         self.store = VectorStore.load(self.settings.store_dir, EMBED_DIM)
         self.indexer = Indexer(self.store, self.gemini, self.settings.chunk_size, self.settings.chunk_overlap)
+        self.team = Orchestrator(self.gemini, self.store)
 
     def sync(self, path: Path, prune: bool = True) -> SyncReport:
         return self.indexer.sync(Path(path), prune=prune)
@@ -35,7 +45,14 @@ class RAG:
     def retrieve(self, question: str, k: int = 5) -> list[Hit]:
         return self.store.search(self.gemini.embed_query(question), k=k)
 
-    def ask(self, question: str, k: int = 5) -> Answer:
+    def ask(self, question: str, k: int = 5, mode: Mode = "agents") -> Answer:
+        if mode == "agents":
+            result = self.team.run(question, k=k)
+            return Answer(result.text, result.sources, "agents", result.trace.to_list(), result.verified, result.notes)
+        return self.ask_simple(question, k)
+
+    def ask_simple(self, question: str, k: int = 5) -> Answer:
+        """One retrieval and one generation call, no agents. Cheaper on quota."""
         hits = self.retrieve(question, k)
         if not hits:
             return Answer("The index is empty. Run `rag sync <folder>` first.", [])
