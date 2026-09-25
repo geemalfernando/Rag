@@ -6,6 +6,7 @@ Ask questions about your own documents with Gemini, and keep the index up to dat
 - **Incremental updates**: files are fingerprinted with sha256, so a sync only re-embeds what was added or edited and drops what was deleted
 - **Grounded answers**: Gemini answers only from the retrieved chunks and cites them as `[1]`, `[2]`, …
 - **No database needed**: the index is a JSON file plus a NumPy array in `.rag_store/`
+- **Web app**: upload, edit and delete docs in the browser, then ask questions with clickable citations
 
 ## Setup
 
@@ -38,6 +39,40 @@ uv run rag watch docs/                # re-sync automatically while you edit
 Use `--keep-deleted` if you don't want files that disappeared to be removed from the index.
 Pruning only applies inside the folder you sync, so syncing `docs/a` never touches `docs/b`.
 
+## Web app
+
+```bash
+uv run uvicorn rag.api:app --reload
+```
+
+Open <http://localhost:8000>. Documents live in `data/docs/` (set `RAG_DOCS_DIR` to change it). A fresh
+install starts with the sample docs. Every upload, edit or delete re-syncs just that change.
+
+| Endpoint | |
+|---|---|
+| `GET /api/documents` | list docs with size and chunk count |
+| `GET /api/documents/{name}` | read a text doc |
+| `PUT /api/documents/{name}` | create or overwrite a text doc (`{"content": "..."}`) |
+| `POST /api/documents` | upload files (multipart, field `files`) |
+| `DELETE /api/documents/{name}` | delete a doc |
+| `POST /api/ask` | `{"question": "...", "k": 5}` → answer + sources |
+
+Each write returns a sync report like `{"added": [], "updated": ["coffee.txt"], "removed": [], "unchanged": 1}`.
+
+## Deploying to Render
+
+The repo includes a `render.yaml` blueprint.
+
+1. In the Render dashboard choose **New → Blueprint** and pick this repo.
+2. Paste your `GEMINI_API_KEY` when asked.
+3. Deploy. Pushes to `main` redeploy automatically.
+
+Heads-up for the free plan: the service sleeps after ~15 minutes idle (first request afterwards takes
+~30s), and the disk is wiped on every restart or deploy, so uploaded docs reset to the samples.
+Attach a persistent disk (paid) and point `RAG_DOCS_DIR` / `RAG_STORE_DIR` at it to keep them.
+
+The app has no login: anyone with the URL can upload documents and use your Gemini quota.
+
 ## Configuration
 
 Set these in `.env` or the environment:
@@ -48,6 +83,7 @@ Set these in `.env` or the environment:
 | `RAG_CHAT_MODEL` | `gemini-flash-lite-latest` | model that writes the answers |
 | `RAG_EMBED_MODEL` | `gemini-embedding-001` | 768-dim embeddings |
 | `RAG_STORE_DIR` | `.rag_store` | where the index lives |
+| `RAG_DOCS_DIR` | `data/docs` | where the web app keeps documents |
 | `RAG_CHUNK_SIZE` / `RAG_CHUNK_OVERLAP` | `800` / `150` | characters |
 
 On the free tier, the full `gemini-flash-latest` model is capped at 20 requests a day, which is why the lite model is the default.
@@ -73,6 +109,7 @@ question ──embed (Gemini)──▶ top-k cosine search ◀──────
 | `indexer.py` | hash-based add/update/remove sync |
 | `pipeline.py` | retrieve and answer |
 | `cli.py` | the `rag` command |
+| `api.py` + `web/` | FastAPI backend and the browser frontend |
 
 ## Tests
 
@@ -82,3 +119,7 @@ uv run pytest -m gemini         # live checks against the Gemini API (needs a ke
 ```
 
 The live tests check that edits actually show up: they change a document, re-sync, and make sure the answer follows the change.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
